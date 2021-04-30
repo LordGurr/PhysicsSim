@@ -8,6 +8,9 @@ using System.Linq;
 
 namespace PhysicsSim
 {
+    internal enum state
+    { noMove, moved, firstMove }
+
     public class Game1 : Game
     {
         private GraphicsDeviceManager _graphics;
@@ -21,12 +24,15 @@ namespace PhysicsSim
         //private DataTable dt = new DataTable();
         private List<Particle> particles = new List<Particle>();
 
+        private Random rng = new Random();
+
         public static Texture2D square;
         private SpriteFont font;
         private bool debugging = false;
         private float framerate = 0;
         private float timePerParticle;
         private float timeForParticles = 0;
+        private bool moved = false;
 
         public Game1()
         {
@@ -59,6 +65,7 @@ namespace PhysicsSim
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             square = Content.Load<Texture2D>("Square4");
             font = Content.Load<SpriteFont>("font");
+            GraphicsDevice.Clear(Color.CornflowerBlue);
             // TODO: use this.Content to load your game content here
         }
 
@@ -72,12 +79,33 @@ namespace PhysicsSim
                 framerate = 1 / (float)framerateWatch.Elapsed.TotalSeconds;
                 framerateWatch.Restart();
                 timeForParticlesWatch.Restart();
-                for (int i = 0; i < particles.Count; i++)
+                moved = false;
+                int i;
+                for (i = 0; i < particles.Count; i++)
                 {
+                    int x = particles[i].rectangle.X;
+                    int y = particles[i].rectangle.Y;
+                    //int[] pos = new int[] { particles[i].rectangle.X, particles[i].rectangle.Y };
                     particles[i].updateParticle(Window, particles, dictionaryNew);
-                    dictionary.Keys.ToArray()[i].X = particles[i].rectangle.X / 10;
-                    dictionary.Keys.ToArray()[i].Y = particles[i].rectangle.Y / 10;
-                    dictionaryNew.Keys.ToArray()[i] = new int[] { particles[i].rectangle.X / 10, particles[i].rectangle.Y / 10 };
+                    //if (pos != new int[] { particles[i].rectangle.X, particles[i].rectangle.Y })
+                    if (x != particles[i].rectangle.X || y != particles[i].rectangle.Y)
+                    {
+                        moved = true;
+                        break;
+                    }
+                    //dictionary.Keys.ToArray()[i].X = particles[i].rectangle.X / 10;
+                    //dictionary.Keys.ToArray()[i].Y = particles[i].rectangle.Y / 10;
+                    //dictionaryNew.Keys.ToArray()[i] = new int[] { particles[i].rectangle.X / 10, particles[i].rectangle.Y / 10 };
+                }
+                if (moved)
+                {
+                    for (i++; i < particles.Count; i++)
+                    {
+                        particles[i].updateParticle(Window, particles, dictionaryNew);
+                        //dictionary.Keys.ToArray()[i].X = particles[i].rectangle.X / 10;
+                        //dictionary.Keys.ToArray()[i].Y = particles[i].rectangle.Y / 10;
+                        //dictionaryNew.Keys.ToArray()[i] = new int[] { particles[i].rectangle.X / 10, particles[i].rectangle.Y / 10 };
+                    }
                 }
                 timeForParticles = timeForParticlesWatch.Elapsed.Ticks;
                 timePerParticle = timeForParticles / (float)particles.Count;
@@ -90,8 +118,8 @@ namespace PhysicsSim
                         if (!particles.Any(a => a.rectangle.X == mousePos[0] && a.rectangle.Y == mousePos[1]))
                         {
                             particles.Add(new Sand(new Rectangle(mousePos[0], mousePos[1], 10, 10), particles, Color.Yellow));
-                            dictionary.Add(new Vector2Int(particles[particles.Count - 1].rectangle.X / 10, particles[particles.Count - 1].rectangle.Y / 10), particles.Count - 1);
-                            dictionaryNew.Add(new int[] { particles[particles.Count - 1].rectangle.X / 10, particles[particles.Count - 1].rectangle.Y / 10 }, particles.Count - 1);
+                            //dictionary.Add(new Vector2Int(particles[particles.Count - 1].rectangle.X / 10, particles[particles.Count - 1].rectangle.Y / 10), particles.Count - 1);
+                            //dictionaryNew.Add(new int[] { particles[particles.Count - 1].rectangle.X / 10, particles[particles.Count - 1].rectangle.Y / 10 }, particles.Count - 1);
                         }
                         //DataRow tempRow = dt.NewRow();
                         //    tempRow[0] = particles.Count-1;
@@ -119,30 +147,54 @@ namespace PhysicsSim
 
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
-            _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
-            for (int i = 0; i < particles.Count; i++)
+            if (moved || Input.GetMouseButton(0))
             {
-                particles[i].Draw(_spriteBatch);
+                GraphicsDevice.Reset();
+                GraphicsDevice.Clear(Color.CornflowerBlue);
+                _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
+                for (int i = 0; i < particles.Count; i++)
+                {
+                    particles[i].Draw(_spriteBatch);
+                }
+                if (debugging)
+                {
+                    _spriteBatch.DrawString(font, "particles: " + particles.Count, new Vector2(5, 5), Color.White);
+                    _spriteBatch.DrawString(font, "fps: " + framerate.ToString("F1"), new Vector2(5, 25), Color.White);
+                    _spriteBatch.DrawString(font, "draw fps: " + (1 / (float)framerateWatchDraw.Elapsed.TotalSeconds).ToString("F1"), new Vector2(5, 45), Color.White);
+                    framerateWatchDraw.Restart();
+                    if (timePerParticle < float.MaxValue)
+                    {
+                        _spriteBatch.DrawString(font, "tpp: " + timePerParticle.ToString("F1"), new Vector2(5, 65), Color.White);
+                    }
+                    else
+                    {
+                        _spriteBatch.DrawString(font, "tpp: big", new Vector2(5, 65), Color.White);
+                    }
+                    _spriteBatch.DrawString(font, "tfap: " + timeForParticles.ToString("F1"), new Vector2(5, 85), Color.White);
+                    Point s = new Point();
+                    s.X = (int)rng.Next(0, 4);
+                    s.Y = (int)rng.Next(0, 4);
+                    Point d = new Point();
+                    d.X = (int)rng.Next(0, Window.ClientBounds.Width - s.X);
+                    d.Y = (int)rng.Next(0, Window.ClientBounds.Height - s.Y);
+
+                    Rectangle destinationRectangle = new Rectangle();
+                    destinationRectangle.X = s.X;
+                    destinationRectangle.Y = s.Y;
+                    destinationRectangle.Width = d.X;
+                    destinationRectangle.Height = d.Y;
+
+                    float transparency = (float)(rng.Next(1, 80) / 255d);
+                    _spriteBatch.Draw(square, new Vector2(d.X, d.Y), new Color(255, 255, 255, 255f * transparency));
+                }
+                // TODO: Add your drawing code here
+                _spriteBatch.End();
             }
-            if (debugging)
+            else
             {
-                _spriteBatch.DrawString(font, "particles: " + particles.Count, new Vector2(5, 5), Color.White);
-                _spriteBatch.DrawString(font, "fps: " + framerate.ToString("F1"), new Vector2(5, 25), Color.White);
-                _spriteBatch.DrawString(font, "draw fps: " + (1 / (float)framerateWatchDraw.Elapsed.TotalSeconds).ToString("F1"), new Vector2(5, 45), Color.White);
-                framerateWatchDraw.Restart();
-                if (timePerParticle < float.MaxValue)
-                {
-                    _spriteBatch.DrawString(font, "tpp: " + timePerParticle.ToString("F1"), new Vector2(5, 65), Color.White);
-                }
-                else
-                {
-                    _spriteBatch.DrawString(font, "tpp: big", new Vector2(5, 65), Color.White);
-                }
-                _spriteBatch.DrawString(font, "tfap: " + timeForParticles.ToString("F1"), new Vector2(5, 85), Color.White);
+                GraphicsDevice.Present();
+                var a = GraphicsDevice.Textures;
             }
-            // TODO: Add your drawing code here
-            _spriteBatch.End();
             base.Draw(gameTime);
         }
 
@@ -264,25 +316,31 @@ namespace PhysicsSim
                 bool moveDown = true;
 
                 int b;
-                if (dictionary.TryGetValue(new int[] { temp.X / 10, temp.Y / 10 }, out b))
-                {
-                }
-                if (dictionary.Any(a => a.Key == new int[] { temp.X / 10, temp.Y / 10 }))
-                {
-                }
+                //if (dictionary.TryGetValue(new int[] { temp.X / 10, temp.Y / 10 }, out b))
+                //{
+                //}
+                //if (dictionary.Any(a => a.Key == new int[] { temp.X / 10, temp.Y / 10 }))
+                //{
+                //}
                 //List<Particle> particlesBellow = allTheParticles;
                 //List<Particle> particlesBellow = allTheParticles.FindAll(a => a.rectangle.Y >= temp.Y);
                 //List<Particle> particlesBellow = allTheParticles.FindAll(a => AdvancedMath.isDistanceLessThan(new int[] { a.rectangle.X + 5, a.rectangle.Y + 5 }, new int[] { temp.X + 5, temp.Y + 5 }, 15));
-                for (int i = 0; i < particlesBellow.Count; i++)
+                /*     for (int i = 0; i < particlesBellow.Count; i++)
+                     {
+                         //if (particlesBellow[i].rectangle.X / 5 == temp.X / 5 && particlesBellow[i].rectangle.Y / 5 == temp.Y / 5)
+                         //if (particlesBellow[i].rectangle.Intersects(temp))
+                         //if (particlesBellow[i].rectangle.Location == (temp.Location))
+                         if (particlesBellow[i].rectangle.X == (temp.X) && particlesBellow[i].rectangle.Y == (temp.Y))
+                         {
+                             moveDown = false;
+                             break;
+                         }
+                     }*/
+                if (particlesBellow.Any(a => a.rectangle.X == (temp.X) && a.rectangle.Y == (temp.Y)))
                 {
-                    //if (particlesBellow[i].rectangle.X / 5 == temp.X / 5 && particlesBellow[i].rectangle.Y / 5 == temp.Y / 5)
-                    if (particlesBellow[i].rectangle.Intersects(temp))
-                    {
-                        moveDown = false;
-                        break;
-                    }
+                    moveDown = false;
                 }
-                if (temp.Top > window.ClientBounds.Height)
+                if (temp.Top > window.ClientBounds.Height - 10)
                 {
                     return;
                 }
@@ -294,18 +352,24 @@ namespace PhysicsSim
                 bool moveRight = true;
                 temp.X += rectangle.Width;
 
-                if (dictionary.TryGetValue(new int[] { temp.X / 10, temp.Y / 10 }, out b))
-                {
-                }
+                //if (dictionary.TryGetValue(new int[] { temp.X / 10, temp.Y / 10 }, out b))
+                //{
+                //}
 
                 //temp = new Rectangle(rectangle.X + rectangle.Width, rectangle.Y + rectangle.Height, rectangle.Width, rectangle.Height);
-                for (int i = 0; i < particlesBellow.Count; i++)
+
+                //for (int i = 0; i < particlesBellow.Count; i++)
+                //{
+                //    //if (particlesBellow[i].rectangle.Intersects(temp))
+                //    if (particlesBellow[i].rectangle.X == (temp.X) && particlesBellow[i].rectangle.Y == (temp.Y))
+                //    {
+                //        moveRight = false;
+                //        break;
+                //    }
+                //}
+                if (particlesBellow.Any(a => a.rectangle.X == (temp.X) && a.rectangle.Y == (temp.Y)))
                 {
-                    if (particlesBellow[i].rectangle.Intersects(temp))
-                    {
-                        moveRight = false;
-                        break;
-                    }
+                    moveRight = false;
                 }
                 if (moveRight)
                 {
@@ -317,17 +381,22 @@ namespace PhysicsSim
                 //temp = new Rectangle(rectangle.X - rectangle.Width, rectangle.Y + rectangle.Height, rectangle.Width, rectangle.Height);
                 temp.X -= rectangle.Width * 2;
 
-                if (dictionary.TryGetValue(new int[] { temp.X / 10, temp.Y / 10 }, out b))
-                {
-                }
+                //if (dictionary.TryGetValue(new int[] { temp.X / 10, temp.Y / 10 }, out b))
+                //{
+                //}
 
-                for (int i = 0; i < particlesBellow.Count; i++)
+                //for (int i = 0; i < particlesBellow.Count; i++)
+                //{
+                //    //if (particlesBellow[i].rectangle.Intersects(temp))
+                //    if (particlesBellow[i].rectangle.X == (temp.X) && particlesBellow[i].rectangle.Y == (temp.Y))
+                //    {
+                //        moveLeft = false;
+                //        break;
+                //    }
+                //}
+                if (particlesBellow.Any(a => a.rectangle.X == (temp.X) && a.rectangle.Y == (temp.Y)))
                 {
-                    if (particlesBellow[i].rectangle.Intersects(temp))
-                    {
-                        moveLeft = false;
-                        break;
-                    }
+                    moveLeft = false;
                 }
                 if (moveLeft)
                 {
