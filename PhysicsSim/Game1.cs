@@ -469,37 +469,11 @@ namespace PhysicsSim
             }
         }
 
-        private class Vector2Int
+        public class Vector2Int
         {
-            //private int x;
-            //private int y;
+            public int X { get; set; }
 
-            //public int X
-            //{
-            //    get
-            //    {
-            //        return x;
-            //    }
-            //    set
-            //    {
-            //        x = value;
-            //    }
-            //}
-
-            //public int Y
-            //{
-            //    get
-            //    {
-            //        return y;
-            //    }
-            //    set
-            //    {
-            //        y = value;
-            //    }
-            //}
-
-            public int X;
-            public int Y;
+            public int Y { get; set; }
 
             public Vector2Int()
             {
@@ -517,6 +491,63 @@ namespace PhysicsSim
             {
                 X = _x;
                 Y = _y;
+            }
+
+            public static Vector2Int operator +(Vector2Int a, Vector2Int b)
+            {
+                return new Vector2Int(a.X + b.X, a.Y + b.Y);
+            }
+
+            public static Vector2Int operator -(Vector2Int a, Vector2Int b)
+            {
+                return new Vector2Int(a.X - b.X, a.Y - b.Y);
+            }
+
+            public static Vector2Int operator *(Vector2Int a, int b)
+            {
+                return new Vector2Int(a.X * b, a.Y * b);
+            }
+
+            public static Vector2Int operator *(Vector2Int a, float b)
+            {
+                return new Vector2Int((int)Math.Round(a.X * b, MidpointRounding.AwayFromZero), (int)Math.Round(a.Y * b, MidpointRounding.AwayFromZero));
+            }
+
+            public static Vector2Int operator /(Vector2Int a, int b)
+            {
+                return new Vector2Int(a.X / b, a.Y / b);
+            }
+
+            public static Vector2Int operator /(Vector2Int a, float b)
+            {
+                return new Vector2Int((int)Math.Round(a.X / b, MidpointRounding.AwayFromZero), (int)Math.Round(a.Y / b, MidpointRounding.AwayFromZero));
+            }
+
+            public static Vector2Int operator %(Vector2Int a, int b)
+            {
+                return new Vector2Int(a.X % b, a.Y % b);
+            }
+
+            public static Vector2Int operator %(Vector2Int a, float b)
+            {
+                return new Vector2Int((int)Math.Round(a.X % b, MidpointRounding.AwayFromZero), (int)Math.Round(a.Y % b, MidpointRounding.AwayFromZero));
+            }
+
+            public static readonly Vector2Int One = new Vector2Int(1, 1);
+            public static readonly Vector2Int Zero = new Vector2Int(0, 0);
+
+            public float Distance(Vector2Int b)
+            {
+                return AdvancedMath.Vector2Distance(new Vector2(X, Y), new Vector2(b.X, b.Y));
+            }
+
+            public Vector2Int Normalize
+            {
+                get
+                {
+                    Vector2 temp = AdvancedMath.Normalize(new Vector2(X, Y));
+                    return new Vector2Int((int)Math.Round(temp.X, MidpointRounding.AwayFromZero), (int)Math.Round(temp.Y, MidpointRounding.AwayFromZero));
+                }
             }
         }
     }

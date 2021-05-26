@@ -90,6 +90,17 @@ namespace PhysicsSim
             return vector;
         }
 
+        public static Vector2 Normalize(Vector2 vector)
+        {
+            float mag = AdvancedMath.Magnitude(vector);
+            //these intermediate variables force the intermediate result to be
+            //of float precision. without this, the intermediate result can be of higher
+            //precision, which changes behavior.
+            float normalized_x = vector.X / mag;
+            float normalized_y = vector.Y / mag;
+            return new Vector2(normalized_x, normalized_y);
+        }
+
         public static float sqrMagnitude(Vector2 temp) //Stulen från unity
         {
             return temp.X * temp.X + temp.Y * temp.Y;
